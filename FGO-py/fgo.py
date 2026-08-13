@@ -9,6 +9,7 @@ parser.add_argument('entrypoint',help='Program entry point (default: %(default)s
 parser.add_argument('-v','--version',help='Show FGO-py version',action='version',version=VERSION)
 parser.add_argument('-l','--loglevel',help='Change the console log level (default: %(default)s)',type=str.upper,choices=['DEBUG','INFO','WARNING','CRITICAL','ERROR'],default='INFO')
 parser.add_argument('-c','--config',help='Config file path (default: %(default)s)',type=str,default='fgoConfig.json')
+parser.add_argument('-r','--readonly',help='Do not save configuration file on exit',action='store_false')
 parser.add_argument('--no-color',help='Disable colored console output',action='store_true')
 arg=parser.parse_args()
 
@@ -39,4 +40,5 @@ if not config.farming:
 
 try:main(config)
 except Exception as e:fgoLogging.logger.exception(e)
-finally:config.save()
+finally:
+    if arg.readonly:config.save()

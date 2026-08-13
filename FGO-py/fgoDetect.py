@@ -105,8 +105,6 @@ class XDetectBase(metaclass=logMeta(logger)):
     def isBattleFormation(self):return self._compare(self.tmpl.BATTLEBEGIN,(1070,632,1270,710))
     def isChooseFriend(self):return any(self._compare(i,(1189,190,1210,243))for i in(self.tmpl.CHOOSEFRIEND,self.tmpl.CHOOSEFRIENDEX))
     def isCardSealed(self):return[self._compare(self.tmpl.CHARASEALED,(76+257*i,479,225+257*i,533),.3)or any(self._compare(j,(44+257*i,492,68+257*i,528),.14)for j in(self.tmpl.CARDSEALEDARTS,self.tmpl.CARDSEALEDQUICK,self.tmpl.CARDSEALEDBUSTER))for i in range(5)]
-    def isFpContinue(self):return self._compare(self.tmpl.FPCONTINUE,(646,639,883,707))
-    def isFpSummon(self):return self._compare(self.tmpl.FPSUMMON,(643,20,812,67))
     def isFriendListEnd(self):return self._isListEnd((1255,709))
     def isHouguReady(self,that=None):return(lambda that:[not any(that._compare(j,(313+231*i,172,515+231*i,258),.52)for j in(self.tmpl.HOUGUSEALED,self.tmpl.CHARASEALED))and(numpy.mean(self._crop((144+319*i,679,156+319*i,684)))>55 or numpy.mean(that._crop((144+319*i,679,156+319*i,684)))>55)for i in range(3)])((time.sleep(.15),type(self)())[1]if that is None else that)
     def isLotteryContinue(self):return self._watchLottery.send(self)
@@ -125,13 +123,18 @@ class XDetectBase(metaclass=logMeta(logger)):
     def isSkillReady(self,i,j):return not self._compare(self.tmpl.STILL,(35+318*i+88*j,598,55+318*i+88*j,618),.2)
     def isSpecialDropRainbowBox(self):return self._compare(self.tmpl.RAINBOW,(957,2,990,40),.1)
     def isSpecialDropSuspended(self):return self._compare(self.tmpl.CLOSE,(6,14,28,68))
+    def isSummonContinue(self):return self._compare(self.tmpl.SUMMONCONTINUE,(642,639,883,707))
+    def isSummonFinish(self):return self._compare(self.tmpl.SUMMONFINISH,(642,639,883,707))
+    def isSummonFp(self):return self._compare(self.tmpl.FPSUMMON,(643,20,812,67),.1)
     def isSummonHistoryListEnd(self):return self._isListEnd((1142,552))
+    def isSummonStory(self):return self._compare(self.tmpl.STORYSUMMON,(594,483,685,520),.1)
     def isSynthesisBegin(self):return self._compare(self.tmpl.SYNTHESIS,(16,12,112,73))
     def isSynthesisFinished(self):return self._compare(self.tmpl.DECIDEDISABLED,(1035,625,1275,711))
     def isTerminal(self):return numpy.mean(self._crop((111,571,162,610)))<100
     def isTurnBegin(self):return self._compare(self.tmpl.ATTACK,(1155,635,1210,682))
-    def isWeeklyMission(self):return numpy.min(cv2.matchTemplate(servantImg[1][1][3][0],cv2.resize(self._crop((296,117,421,210)),(0,0),fx=.555,fy=.555,interpolation=cv2.INTER_CUBIC),cv2.TM_SQDIFF_NORMED))<.1
+    def isWeeklyMission(self):return numpy.min(cv2.matchTemplate(servantImg[1][1][5][0],cv2.resize(self._crop((296,117,421,210)),(0,0),fx=.555,fy=.555,interpolation=cv2.INTER_CUBIC),cv2.TM_SQDIFF_NORMED))<.1
     def isWeeklyMissionListEnd(self):return self._isListEnd((1261,614))
+    def getAp(self):return self._ocrInt((236,664,323,684))//1000
     @retryOnError()
     def getCardColor(self):return[+self._select((self.tmpl.ARTS,self.tmpl.QUICK,self.tmpl.BUSTER),(80+257*i,537,131+257*i,581))for i in range(5)]
     def getCardCriticalRate(self):return[(lambda x:0 if x is None else x+1)(self._select((self.tmpl.CRITICAL1,self.tmpl.CRITICAL2,self.tmpl.CRITICAL3,self.tmpl.CRITICAL4,self.tmpl.CRITICAL5,self.tmpl.CRITICAL6,self.tmpl.CRITICAL7,self.tmpl.CRITICAL8,self.tmpl.CRITICAL9,self.tmpl.CRITICAL0),(76+257*i,350,113+257*i,405),.06))for i in range(5)]

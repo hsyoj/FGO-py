@@ -17,8 +17,8 @@ def wrapTry(func):
         except BaseException as e:logger.exception(e)
         finally:self.prompt=prompt.format(Device=fgoDevice.device.name,Team=fgoKernel.Main.teamIndex)
     return wrapper
-def countdown(x):
-    timer=time.time()+x
+def countdown(s):
+    timer=time.time()+reduce(lambda x,y:x*60+int(y),s.replace('.',':').split(':'),0)
     while(rest:=timer-time.time())>0:
         print((lambda sec:f'{sec//3600:02}:{sec%3600//60:02}:{sec%60:02}')(round(rest)),end=' \r')
         time.sleep(min(1,rest))
@@ -70,7 +70,7 @@ Some commands support <command> [<subcommand> ...] {{-h, --help}} for further in
         self.do_continue(f'-s {arg.sleep}')
     def complete_call(self,text,line,begidx,endidx):
         return self.completecommands({
-            '':['fpSummon','lottery','mail','synthesis','dailyFpSummon','summonHistory'],
+            '':['fpSummon','lottery','mail','synthesis','dailyFpSummon','dailyStorySummon','summonHistory'],
         },text,line,begidx,endidx)
     def do_classic(self,line):
         'Use classic battle'
@@ -94,7 +94,7 @@ Some commands support <command> [<subcommand> ...] {{-h, --help}} for further in
         arg=parser_connect.parse_args(line.split())
         if arg.list:return print(f'last connect: {self.config.device if self.config.device else None}',*fgoDevice.Device.enumDevices(),sep='\n')
         self.config.device=arg.name if arg.name else self.config.device
-        countdown(reduce(lambda x,y:x*60+int(y),arg.sleep.replace('.',':').split(':'),0))
+        countdown(arg.sleep)
         fgoDevice.device=fgoDevice.Device(self.config.device)
     def complete_connect(self,text,line,begidx,endidx):
         return self.completecommands({
@@ -105,7 +105,7 @@ Some commands support <command> [<subcommand> ...] {{-h, --help}} for further in
         arg=parser_battle.parse_args(line.split())
         assert fgoDevice.device.available
         assert not fgoKernel.mutex.locked()
-        countdown(reduce(lambda x,y:x*60+int(y),arg.sleep.replace('.',':').split(':'),0))
+        countdown(arg.sleep)
         result=None
         signal.signal(signal.SIGINT,lambda*_:fgoKernel.schedule.stop())
         if platform.system()=='Windows':signal.signal(signal.SIGBREAK,lambda*_:fgoKernel.schedule.pause())
@@ -154,7 +154,7 @@ Some commands support <command> [<subcommand> ...] {{-h, --help}} for further in
         'Loop for battle until AP empty'
         arg=parser_main.parse_args(line.split())
         fgoKernel.schedule.stopLater(arg.appoint)
-        self.work=fgoKernel.Operation(arg.quest,arg.appleCount,['gold','silver','bronze','copper','quartz'].index(arg.appleKind))
+        self.work=fgoKernel.Operation(arg.quest,arg.appleCount,['gold','silver','bronze','copper','quartz'].index(arg.appleKind),wait=arg.wait)
         self.do_continue(f'-s {arg.sleep}')
     def complete_main(self,text,line,begidx,endidx):
         return self.completecommands({
@@ -229,8 +229,12 @@ Some commands support <command> [<subcommand> ...] {{-h, --help}} for further in
         print(fgoKernel.__version__)
     def do_week(self,line):
         'Solve weekly mission'
-        self.work=fgoKernel.Operation(fgoKernel.weeklyMission())
-        for id,(quest,times)in enumerate(self.work):logger.warning(f'{id:2}. {"-".join(str(i)for i in quest):8}{times:2}')
+        arg=parser_week.parse_args(line.split())
+        countdown(arg.sleep)
+        self.work=fgoKernel.Operation(fgoKernel.weeklyMission(),wait=arg.wait,appleKind=3,appleTotal=0 if arg.wait else 114514)
+        if arg.cmd:return logger.warning(' '.join(f'-q {"-".join(str(i)for i in quest)} {times}'for quest,times in self.work))
+        for id,(quest,times)in enumerate(self.work):logger.warning(f'{id:2}. {"-".join(str(i)for i in quest):8}x{times:2}')
+        if self.work and arg.exec:self.do_continue('')
     def do_169(self,line):
         'Adapt none 16:9 screen'
         arg=parser_169.parse_args(line.split())
@@ -268,7 +272,7 @@ parser_bench.add_argument('-i','--input',help='Bench touch, if neither -i nor -o
 parser_bench.add_argument('-o','--output',help='Bench screenshot, if neither -i nor -o specified, bench them both',action='store_true')
 
 parser_call=ArgParser(prog='call',description=Cmd.do_call.__doc__)
-parser_call.add_argument('func',help='Additional feature name',choices=['fpSummon','lottery','mail','synthesis','dailyFpSummon','summonHistory'])
+parser_call.add_argument('func',help='Additional feature name',choices=['fpSummon','lottery','mail','synthesis','dailyFpSummon','dailyStorySummon','summonHistory'])
 parser_call.add_argument('-s','--sleep',help='Sleep before run (default: %(default)s)',type=validator(str,lambda x:re.match(r'\d+([:.]\d+)*$',x),'timedelta'),default='0')
 
 parser_connect=ArgParser(prog='connect',description=Cmd.do_connect.__doc__)
@@ -285,13 +289,14 @@ parser_main.add_argument('appleKind',help='Apple Kind (default: %(default)s)',ty
 parser_main.add_argument('-s','--sleep',help='Sleep before run (default: %(default)s)',type=validator(str,lambda x:re.match(r'\d+([:.]\d+)*$',x),'timedelta'),default='0')
 parser_main.add_argument('-a','--appoint',help='Battle count limit (default: %(default)s for no limit)',type=validator(int,lambda x:x>=0,'nonnegative int'),default=0)
 parser_main.add_argument('-q','--quest',help='Goto different quests for different times',action='append',type=ArgStruct(lambda x:tuple(int(i)for i in x.split('-')),validator(int,lambda x:x>=0,'nonnegative int')),default=[],nargs=2)
+parser_main.add_argument('-w','--wait',help='When quest set, wait before each quest to ensure sufficient AP',action='store_true')
 
 parser_press=ArgParser(prog='press',description=Cmd.do_press.__doc__)
 parser_press.add_argument('button',help='Button',type=str.upper)
 parser_press.add_argument('-c','--code',help='Use virtual key code',action='store_true')
 
 parser_screenshot=ArgParser(prog='screenshot',description=Cmd.do_screenshot.__doc__)
-parser_screenshot.add_argument('-s','--show',help='Show screenshot without saving, you can save the screenshot via',action='store_true')
+parser_screenshot.add_argument('-s','--show',help='Show screenshot without saving',action='store_true')
 parser_screenshot.add_argument('-o','--file',help='Filename/path prefix (default: %(default)s)',default='Screenshot')
 parser_screenshot.add_argument('-t','--notime',help='Do not append Time after filename',action='store_false')
 
@@ -315,6 +320,12 @@ parser_teamup_set_master.add_argument('value',help='Info value (e.g. 1107-xxxx-2
 parser_teamup_set_servant=parser_teamup_set_.add_parser('servant',help='Setup servant skill & hougu info')
 parser_teamup_set_servant.add_argument('pos',help='Servant # (1-6)',type=int,choices=range(1,7))
 parser_teamup_set_servant.add_argument('value',help='Info value (e.g. 1007-xxxx-1007-2x, add hyphens(-) anywhere as they will be removed, x for no change)',type=str.upper)
+
+parser_week=ArgParser(prog='week',description=Cmd.do_week.__doc__)
+parser_week.add_argument('-s','--sleep',help='Sleep before run (default: %(default)s)',type=validator(str,lambda x:re.match(r'\d+([:.]\d+)*$',x),'timedelta'),default='0')
+parser_week.add_argument('-w','--wait',help='Wait before each quest to ensure sufficient AP, otherwise eat apple',action='store_true')
+parser_week.add_argument('-c','--cmd',help='Print cmd line instead of pretty list',action='store_true')
+parser_week.add_argument('-e','--exec',help='Execute the solved quest queue',action='store_true')
 
 parser_169=ArgParser(prog='169',description=Cmd.do_169.__doc__)
 parser_169.add_argument('action',help='Action',type=str.lower,choices=['invoke','revoke'])

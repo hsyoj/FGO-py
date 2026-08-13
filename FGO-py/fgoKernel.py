@@ -83,7 +83,7 @@ def setup():
 @serialize(mutex)
 def fpSummon():
     while fuse.value<30:
-        if Detect().isFpContinue():fgoDevice.device.perform('MK',(600,2700))
+        if Detect().isSummonContinue():fgoDevice.device.perform('MK',(600,2700))
         fgoDevice.device.press('\x08')
 @serialize(mutex)
 def lottery():
@@ -118,10 +118,22 @@ def dailyFpSummon():
     while not Detect(0,1).isMainInterface():pass
     fgoDevice.device.perform(' Z',(500,2000))
     while not Detect(.5).isMainInterface():pass
-    while not Detect(1.5).isFpSummon():fgoDevice.device.press('\xBC')
-    fgoDevice.device.perform('JJ',(800,3000))
-    while not Detect(.5).isFpContinue():fgoDevice.device.press(' ')
-    fgoDevice.device.perform('\x67\x67',(1200,5000))
+    while not Detect(1.5).isSummonFp():fgoDevice.device.press('\xBC')
+    fgoDevice.device.perform('\xBDJ',(800,3000))
+    while not Detect(.5).isSummonContinue():fgoDevice.device.press(' ')
+    fgoDevice.device.perform('\x67\x67',(1200,2000))
+@serialize(mutex)
+def dailyStorySummon():
+    while not Detect(0,1).isMainInterface():pass
+    fgoDevice.device.press(' ')
+    if not Detect(.8).isSummonStory():
+        fgoDevice.device.perform(' \x67',(500,2000))
+        return
+    fgoDevice.device.press('\xBD')
+    while not Detect(2.5).isMainInterface():pass
+    fgoDevice.device.perform('GJ',(800,3000))
+    while not Detect(.5).isSummonFinish():fgoDevice.device.press(' ')
+    fgoDevice.device.perform('\x67\x67',(1200,2000))
 @serialize(mutex)
 def summonHistory():
     Detect().setupSummonHistory()
@@ -255,7 +267,7 @@ class Turn:
                 self.servant[i]=(lambda x:(x,)+servantData.get(x,(0,0,0,0,(0,0),((0,0),(0,0),(0,0)))))(Detect.cache.getFieldServant(i))
                 self.countDown[0][i]=[0,0,0]
         logger.info(f'Turn {turn} Stage {self.stage} StageTurn {self.stageTurn} {[i[0]for i in self.servant]}')
-        if self.stageTurn==1:Detect.cache.setupEnemyGird()
+        if self.stageTurn==1:self.enemy=[2,0,5][Detect.cache.setupEnemyGird()]
         self.enemy=[Detect.cache.getEnemyHp(i)for i in range(6)]
         self.dispatchSkill()
         fgoDevice.device.perform(' ',(2100,))
@@ -526,6 +538,7 @@ class Main:
         if self.appleKind==3:fgoDevice.device.perform('V',(600,))
         fgoDevice.device.perform('W4K48'[self.appleKind]+'L',(600,1200))
         self.appleTotal-=1
+        logger.warning('Eat Apple')
         return self.appleTotal+1
     @logit(logger,logging.INFO)
     def chooseFriend(self):
@@ -558,9 +571,11 @@ class Main:
                     schedule.sleep(10)
                     fgoDevice.device.perform('\xBAK',(500,1000))
 class Operation(list,Main):
-    def __init__(self,data=(),*args,**kwargs):
+    apLookup={i:j for i,j in zip(missionQuest,missionMat[0])}
+    def __init__(self,data=(),*args,wait=True,**kwargs):
         list.__init__(self,data)
         Main.__init__(self,*args,**kwargs)
+        self.wait=wait
     def __call__(self):
         super().prepare()
         if not self:super().__call__()
@@ -568,5 +583,7 @@ class Operation(list,Main):
             quest,times=self[0]
             del self[0]
             goto(quest)
+            if self.wait:schedule.sleep(max(self.apLookup.get(quest,23)*times-Detect.cache.getAp(),0)*300)
             super().__call__(quest[-1],self.battleCount+times if times else None)
     def prepare(self):pass
+    def getAp(self):return sum(self.apLookup.get(i,23)*j for i,j in self)

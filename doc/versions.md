@@ -9,6 +9,31 @@ Fix:gui保存截图
 Fix:[#149](https://github.com/hgjazhgj/FGO-py/issues/149)启动器破坏修改后的编队配置  
 Add:MasterSkill  
 
+## 2026/08/07 v21.1.0
+
+Upd:Grand Lancer/Alterego/Beast/Pretender  
+[#171](https://github.com/hgjazhgj/FGO-py/pull/171)[#172](https://github.com/hgjazhgj/FGO-py/pull/172)  
+Fix:cli continue第一回合设置缺省目标敌人  
+Add:每日抽剧情  
+游戏10周年上线了每天送一发剧情单抽,这个羊毛我必须薅到  
+与每日抽友情不同,此功能是幂等的,没有免费抽卡次数的时候不会抽  
+Opt:Dockerfile  
+Doc:AlasFpyBridge  
+为此我重新构建了alas和fgo-py的docker image,意图使用AlasFpyBridge来完成每天运行的计划任务  
+时过境迁,物是人非,三年前我把这些容器放在树莓派上跑,现在为了方便开发直接用windows的docker desktop  
+因此我修订了AlasFpyBridge的相关文档,更新了部署用的命令,并且使文本描述更加明确  
+Add:ADB_SERVER_SOCKET  
+与此同时,我现在用的模拟器只监听localhost的adb连接,为此我加入了ADB_SERVER_SOCKET环境变量的支持以保证在设置了独立adb server的情况下本应用与adb命令行有相同的行为  
+你别说你还真别说虽然我一直嚷嚷着要移除airtest,但是其他库真能保证遇到各种非典型需求时都能保证和官方标准的一致性吗  
+Add:cli readonly  
+允许只读的配置文件,在退出时不保存config,以免原地多开时配置打架  
+Add:等待体力回复  
+在设置了计划作战的关卡时,每个有限次数的关卡执行前可以等待体力回复至所需值再进入战斗  
+对于gui,此特性固定启用  
+对于cli,main和week指令有-w/--wait开关可开启此特性  
+特别地,对于cli week,当不指定-w时会在体力不足时吃铜苹果使计划作战完整执行以保证完成任务  
+Upd:servant up to 477  
+
 ## 2025/12/20 v21.0.2
 
 Fix:调参  
@@ -1401,7 +1426,7 @@ Add:熔断器熔断时保存最近的几次截图
 ## 2021/02/13 v4.9.8
 
 Add:增加requirements.txt,修订readme  
-(更新||Fix)&&优化:延时调整  
+(Upd||Fix)&&Opt:延时调整  
 自v4.9.2游戏版本更新后出现了数次战斗卡顿的现象,检查发现从判定回合开始到技能按钮有响应需要的时间好像比原来长了,从者头像完全显示需要更长时间,对着几个录屏数帧数半天发现16/60s就已经达到正常运行标准了,很奇怪  
 如果你想完全避免这一问题,使用不带指向的技能  
 在某技能释放后实际判定回合开始前包括御主技能在内的其他技能按钮就有响应,调整了相关代码使得放技能更快了  

@@ -1,4 +1,4 @@
-import re,shutil,threading,time,cv2,numpy
+import os,re,shutil,threading,time,cv2,numpy
 from airtest.core.android.adb import ADB
 from airtest.core.android.android import Android as Airtest
 from airtest.core.android.constant import CAP_METHOD
@@ -17,7 +17,7 @@ class Android(Airtest):
             self.name=None
             return
         try:
-            super().__init__(serial,**{'cap_method':CAP_METHOD.JAVACAP}|kwargs)
+            super().__init__(serial,**{'cap_method':CAP_METHOD.JAVACAP,'host':os.environ['ADB_SERVER_SOCKET'].split(":")[1:]}|kwargs)
             self.package=next(i for i in re.findall(r'ACTIVITY ([A-Za-z0-9_.]+)/',self.adb.shell('dumpsys activity top'))[::-1]if(lambda x:x[2]-x[0]>959 and x[3]-x[1]>539)(self.get_render_resolution(True,i)))
             self.adjustOffset()
             self.rotation_watcher.reg_callback(lambda _:self.adjustOffset())

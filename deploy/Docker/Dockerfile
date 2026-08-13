@@ -1,8 +1,9 @@
 # docker build -t hgjazhgj/fgo-py:latest .
-# docker run -v $PWD/FGO-py:/FGO-py -p 5000:5000 --name fgo-py -it --rm hgjazhgj/fgo-py
+# adb -a nodaemon server start
+# docker run -v ${PWD}:/app/FGO-py -p 5000:5000 --name fgo-py -e ADB_SERVER_SOCKET=tcp:host.docker.internal:5037 -it --rm hgjazhgj/fgo-py
 
 FROM python:3.11-slim
-WORKDIR /FGO-py
+WORKDIR /app/FGO-py/FGO-py
 #&& python3.9 -m pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ \
 #&& python3.9 -m pip config set install.trusted-host mirrors.aliyun.com \
 #&& apt update \
@@ -12,7 +13,7 @@ WORKDIR /FGO-py
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
  && echo 'Asia/Shanghai' > /etc/timezone \
  && pip install airtest tqdm flask pponnxcr pulp\
- && pip uninstall -y opencv-contrib-python \
+ && pip uninstall -y opencv-python  opencv-contrib-python opencv-python-headless opencv-contrib-python-headless\
  && pip install opencv-contrib-python-headless \
  && rm -r ~/.cache/pip
 CMD ["python", "-X", "utf8", "fgo.py", "cli"]
